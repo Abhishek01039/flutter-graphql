@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:fluttergraphql/bloc/graphql_bloc.dart';
+import 'package:fluttergraphql/bloc_observer.dart';
+import 'package:fluttergraphql/query/country_query.dart';
 
-const String _link = 'https://countries.trevorblades.com/';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
+
 void main() {
+  Bloc.observer = SimpleBlocObserver();
   runApp(_MyApp());
 }
 
@@ -10,21 +15,9 @@ class _MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    final HttpLink httpLink = HttpLink(
-      uri: _link,
-    );
-    ValueNotifier<GraphQLClient> _client = ValueNotifier(
-      GraphQLClient(
-        cache: OptimisticCache(dataIdFromObject: typenameDataIdFromObject),
-        link: httpLink,
-      ),
-    );
-    return GraphQLProvider(
-      client: _client,
-      child: MaterialApp(
-        title: 'Flutter Demo',
-        home: _MyHomePage(),
-      ),
+    return MaterialApp(
+      title: 'Flutter Demo',
+      home: _MyHomePage(),
     );
   }
 }
@@ -41,42 +34,38 @@ class _MyHomePageState extends State<_MyHomePage> {
       appBar: AppBar(
         title: Text('Graphql Flutter'),
       ),
-      body: Query(
-        options: QueryOptions(
-          documentNode: gql(
-            r'''
-            query GetCountry($ID : ID!){
-              continent(code:$ID){
-                name
-                countries{
-                  name
-                }
-              }
-            }
-          ''',
+      body: BlocProvider(
+        create: (context) => GraphqlBloc()
+          ..add(
+            CountryGraphQL(
+              query,
+              variables: {'ID': 'AS'},
+            ),
           ),
-          variables: <String, dynamic>{
-            'ID': 'AF',
+        child: BlocBuilder<GraphqlBloc, GraphqlState>(
+          builder: (context, state) {
+            if (state is Loading) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+            if (state is LoadDataSuccess) {
+              final List _repositories = state.data['continent']['countries'];
+              return ListView.builder(
+                itemCount: _repositories.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return Text(_repositories[index]['name'].toString());
+                },
+              );
+            }
+            if (state is LoadDataFail) {
+              return Center(
+                child: const Text('something went wrong'),
+              );
+            }
+            return Container();
           },
         ),
-        builder: (QueryResult result,
-            {VoidCallback refetch, FetchMore fetchMore}) {
-          if (result.hasException) {
-            return Text(result.exception.toString());
-          }
-          if (result.loading) {
-            return const Text('Loading');
-          }
-          final List _repositories = result.data['continent']['countries'];
-          return ListView.builder(
-            itemCount: _repositories.length,
-            itemBuilder: (context, _index) {
-              return Text(
-                _repositories[_index]['name'],
-              );
-            },
-          );
-        },
       ),
     );
   }
