@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:graphql/client.dart';
 
 abstract class _GraphQLService {
@@ -11,7 +13,7 @@ abstract class _GraphQLService {
 class GraphQLServiceImplRepo extends _GraphQLService {
   GraphQLClient _client;
   GraphQLServiceImplRepo() {
-    HttpLink link = HttpLink(uri: 'https://countries.trevorblades.com/');
+    final link = HttpLink(uri: 'https://countries.trevorblades.com/');
 
     _client = GraphQLClient(
       link: link,
@@ -21,7 +23,7 @@ class GraphQLServiceImplRepo extends _GraphQLService {
   @override
   Future<QueryResult> performQuery(String query,
       {Map<String, dynamic> variables}) async {
-    QueryOptions options =
+    final options =
         QueryOptions(documentNode: gql(query), variables: variables);
 
     final result = await _client.query(options);
@@ -32,12 +34,12 @@ class GraphQLServiceImplRepo extends _GraphQLService {
   @override
   Future<QueryResult> performMutation(String query,
       {Map<String, dynamic> variables}) async {
-    MutationOptions options =
+    final options =
         MutationOptions(documentNode: gql(query), variables: variables);
 
     final result = await _client.mutate(options);
 
-    print(result);
+    log(result.toString());
 
     return result;
   }
